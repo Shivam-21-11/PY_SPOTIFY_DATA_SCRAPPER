@@ -12,15 +12,13 @@ import webbrowser
 import hashlib
 import subprocess
 from datetime import datetime
-load_dotenv()
 
-client_id = os.getenv('CLIENT_ID')
-client_secret = os.getenv('CLIENT_SECRET')
-session_secret = secrets.token_hex(16)
-AUTH_URL = os.getenv('AUTH_URL')
-AUTH_TOKEN_URL = os.getenv('AUTH_TOKEN_URL')
-API_CALL = os.getenv('API_CALL')
-redirect_uri = os.getenv('REDIRECT_URI')
+client_id = None
+client_secret = None
+AUTH_URL = None
+AUTH_TOKEN_URL = None
+API_CALL = None
+redirect_uri = None
 
 def check_directory(usr=None):
     if usr is not None:
@@ -29,7 +27,7 @@ def check_directory(usr=None):
             if not os.path.exists(i):
                 os.mkdir(i)
     else:
-        return 'Provide User Name'
+        print('Provide User Name')
 
 
 def get_authorization():
@@ -39,7 +37,7 @@ def get_authorization():
     code_challenge = base64.urlsafe_b64encode(hashlib.sha256(code_verifier.encode()).digest()).decode().rstrip('=')
 
     process=subprocess.Popen(['python', './Callback/app.py'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-
+    print(AUTH_URL)
     authorization_url = AUTH_URL + '?' + urlparse.urlencode({
         'response_type': 'code',
         'client_id': client_id,
@@ -189,11 +187,33 @@ def get_user_saved_tracks(header,usr,market='IN',limit=50):
     df.to_csv(f'./DATA/{usr}/Saved Tracks/{date}_saved_tracks.csv',index=False)
     return df['name'].head()
 
+def create_env(client_id='',client_secret=''):
+    data = {'CLIENT_ID':client_id,'CLIENT_SECRET':client_secret,'AUTH_URL':"https://accounts.spotify.com/authorize",
+'AUTH_TOKEN_URL':"https://accounts.spotify.com/api/token",
+'API_CALL':"https://api.spotify.com/v1",
+'REDIRECT_URI':"http://127.0.0.1:8080/callback"}
+    with open('.env','w') as f:
+        for key,value in data.items():
+            f.write(f'{key}="{value}"\n')
+    print("./env created...")
+
 if __name__ == "__main__":
+    if not os.path.exists('./.env'):
+        create_env()
+    load_dotenv()
+
+    client_id = os.getenv('CLIENT_ID')
+    client_secret = os.getenv('CLIENT_SECRET')
+    AUTH_URL = os.getenv('AUTH_URL')
+    AUTH_TOKEN_URL = os.getenv('AUTH_TOKEN_URL')
+    API_CALL = os.getenv('API_CALL')
+    redirect_uri = os.getenv('REDIRECT_URI')
+
     ath_stat = False
     access_token,header = None , None
     user_profile = None
     usr=None
+
     while True:
         print("\nMenu:")
         print("1. Authorization")
@@ -210,37 +230,53 @@ if __name__ == "__main__":
             if ath_stat:
                 print(f'Already Authorized : {header}')
             else:
+                if client_id == "" and client_secret == "":
+                    client_id = input('Enter Client Id : ')
+                    client_secret = input('Client Secrete : ')
+                    create_env(client_id=client_id,client_secret=client_secret)
                 access_token,header = get_authorization()
                 ath_stat = True
                 print('Authorized......')
                 user_profile = get_usr_profile(header)
-        if choice == '2':
-            if ath_stat and user_profile is not None:
-                print(f"Name : {user_profile['display_name']}\nUser-Name : {user_profile['id']}\nEmail : {user_profile['email']}\nCountry : {user_profile['country']}\nFollowers : {user_profile['followers']['total']}\nProduct : {user_profile['product']}\n")
                 usr = f"{user_profile['id']}_{user_profile['display_name']}"
                 check_directory(usr)
+
+
+        elif choice == '2':
+            if ath_stat and user_profile is not None:
+                print(f"Name : {user_profile['display_name']}\nUser-Name : {user_profile['id']}\nEmail : {user_profile['email']}\nCountry : {user_profile['country']}\nFollowers : {user_profile['followers']['total']}\nProduct : {user_profile['product']}\n")
             else:
                 print('Please Authorize First')
+
+
         elif choice == '3':
             if ath_stat:
                 print(get_top(header,usr,'tracks'))
             else:
                 print('Please Authorize First')
+
+
         elif choice == '4':
             if ath_stat:
                 print(get_top(header,usr,'artists'))
             else:
                 print('Please Authorize First')
+
+
         elif choice == '5':
             if ath_stat:
                 print(get_followed_artists(header,usr))
             else:
                 print('Please Authorize First')
+
+
         elif choice == '6':
             if ath_stat:
                 print(get_user_saved_tracks(header,usr))
             else:
                 print('Please Authorize First')
+
+
         elif choice == '7':
             print('Exiting.........')
             break
