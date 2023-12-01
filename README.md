@@ -5,7 +5,7 @@ Before using the script, make sure you have the following:
 
 - Spotify Developer Account
 - Client ID and Client Secret from the Spotify Developer Dashboard
-- Update Callback Parameter on your Spotify Developer App Dashboard to `http://127.0.0.1:8080/callback`
+- Update Redirect URI Parameter on your Spotify Developer App Dashboard to `http://127.0.0.1:8080/callback`
 - Python installed on your machine
 
 ## Setup
